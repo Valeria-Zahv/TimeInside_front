@@ -59,10 +59,54 @@
   }
 }
 
-/* Адаптивные стили для маленьких экранов */
-@media (max-width: 480px) {
+/* Основной стиль для headerToolbar */
+.fc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.fc-event-time {
+  display: none;
 }
 
-.leaflet-control-attribution {
-  display: none;
+/* Адаптивные стили для маленьких экранов */
+@media (max-width: 480px) {
+  .fc-toolbar {
+    flex-direction: column; /* Раскладываем элементы по вертикали */
+    align-items: flex-start; /* Выровнять слева */
+  }
+
+  .fc-toolbar > .fc-left,
+  .fc-toolbar > .fc-right {
+    width: 100%; /* Сделать кнопки в пределах доступной ширины */
+    justify-content: space-between;
+  }
+
+  .fc-toolbar-title {
+    margin: 10px 0; /* Добавляем отступ между названием и кнопками */
+    font-size: 1.2rem;
+  }
+
+  .fc-daygrid-day-frame {
+    padding: 2px;
+  }
+
+  .fc .fc-daygrid-day-top {
+    font-size: 10px;
+  }
+
+  .fc-event {
+    font-size: 10px;
+  }
+  .fc-event-time {
+    display: none; /* hide event time */
+  }
+
+  /* .fc-daygrid-day {
+    height: 50px !important;
+  } */
+
+  /* .fc-daygrid-event {
+    font-size: 1.125rem; 
+  } */
 }

@@ -4,14 +4,23 @@ export interface IUserRead {
   id: string;
   username: string;
   email: string;
+  password: string;
+  gender: boolean;
   is_active: boolean;
   is_superuser: boolean;
   is_verified: boolean;
+  age: number;
+  tg_id: number;
+  timezone: number;
 }
 export interface IUserCreate {
   username: string;
   email: string;
   password: string;
+  gender: boolean;
+  age: number;
+  tg_id: number;
+  time_zone: number;
   is_active: boolean;
   is_superuser: boolean;
   is_verified: boolean;

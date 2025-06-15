@@ -1,18 +1,15 @@
 import { AuthStore } from "./AuthStore";
-import { MatchesStore } from "./MatchStore";
-import { SpotsStore } from "./SpotsStore";
-import { TeamStore } from "./TeamsStore";
+import { DrugStore } from "./DrugStore";
+import { CalendarStore } from "./CalendarStore";
 
 const authStore = new AuthStore();
-const spotsStore = new SpotsStore(authStore);
-const teamsStore = new TeamStore(authStore);
-const matchesStore = new MatchesStore(authStore);
+const drugStore = new DrugStore(authStore);
+const calendarStore = new CalendarStore(authStore);
 
 export const stores = {
   authStore,
-  spotsStore,
-  teamsStore,
-  matchesStore,
+  drugStore,
+  calendarStore,
 };
 
 export type StoresType = typeof stores;

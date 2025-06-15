@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { observer } from "mobx-react-lite";
 import { useStores } from "../../stores/useStores";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2, AlertCircle } from "lucide-react";
 import type { DrugSchedule } from "../../stores/CalendarStore";
 
 const AddScheduleModal = observer(
@@ -16,21 +16,9 @@ const AddScheduleModal = observer(
     ceil_info: Date;
   }) => {
     const { drugStore, calendarStore } = useStores();
-    const [showSuggestions, setShowSuggestions] = useState(true);
-    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
-    const userTimeZoneOffset = (user?.time_zone || 0) * 60; // в минутах
-
-    const toUtcISOString = (date: Date): string => {
-      return new Date(
-        date.getTime() - userTimeZoneOffset * 60000,
-      ).toISOString();
-    };
-
-    const fromUtcToLocalDate = (utcString: string): Date => {
-      const date = new Date(utcString);
-      date.setMinutes(date.getMinutes() + userTimeZoneOffset);
-      return date;
-    };
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [loadingDrugs, setLoadingDrugs] = useState(false);
+    const [drugsError, setDrugsError] = useState<string | null>(null);
 
     const [form, setForm] = useState<DrugSchedule>({
       name_drug: "",
@@ -46,40 +34,89 @@ const AddScheduleModal = observer(
     const [preNotifyHours, setPreNotifyHours] = useState<number>(0);
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const localDate = new Date(e.target.value);
       setForm({
         ...form,
-        start_datetime: fromUtcToLocalDate(localDate.toString()).toString(),
+        start_datetime: e.target.value,
         start_schedule: e.target.value.slice(11, 16), // безопасно получаем HH:mm
       });
     };
     const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const localDate = new Date(e.target.value);
-      const utcDate = toUtcISOString(localDate);
       setForm({
         ...form,
-        end_datetime: utcDate, // Конвертируем только end_datetime
+        end_datetime: e.target.value, // Конвертируем только end_datetime
       });
+    };
+
+    const adjustToUTC = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return new Date(date.getTime() + 0 * 60 * 60 * 1000).toISOString();
     };
 
     const handleSubmit = async () => {
       try {
+        // Функция для вычитания 3 часов из времени в формате HH:mm
+        const subtractHoursFromTime = (
+          timeString: string,
+          hoursToSubtract: number,
+        ) => {
+          const [hours, minutes] = timeString.split(":").map(Number);
+          let totalMinutes = hours * 60 + minutes;
+          totalMinutes -= hoursToSubtract * 60;
+
+          // Обработка перехода через полночь
+          if (totalMinutes < 0) {
+            totalMinutes += 24 * 60;
+          }
+
+          const newHours = Math.floor(totalMinutes / 60) % 24;
+          const newMinutes = totalMinutes % 60;
+
+          return `${String(newHours).padStart(2, "0")}:${String(
+            newMinutes,
+          ).padStart(2, "0")}`;
+        };
+
+        // Вычитаем 3 часа из start_schedule
+        const adjustedStartSchedule = form.start_schedule
+          ? subtractHoursFromTime(form.start_schedule, 3)
+          : "";
+
         const payload = {
           ...form,
-          start_datetime: toUtcISOString(new Date(form.start_datetime)),
-          end_datetime: toUtcISOString(new Date(form.end_datetime)),
+          start_datetime: adjustToUTC(form.start_datetime),
+          end_datetime: adjustToUTC(form.end_datetime),
+          start_schedule: adjustedStartSchedule, // Используем скорректированное время
         };
+
         await calendarStore.AddScheduleEvent(payload);
         await calendarStore.fetchEvents();
-        onClose(); // Закрыть модальное окно после отправки данных
+        onClose();
       } catch (e) {
         alert("Ошибка при добавлении курса приёма" + JSON.stringify(e));
       }
     };
 
     useEffect(() => {
-      drugStore.fetchDrugs();
-    }, [drugStore]);
+      const loadDrugs = async () => {
+        try {
+          setLoadingDrugs(true);
+          setDrugsError(null);
+          await drugStore.fetchDrugs();
+        } catch (error) {
+          console.error("Ошибка при загрузке списка лекарств:", error);
+          setDrugsError(
+            "Не удалось загрузить список лекарств. Попробуйте позже.",
+          );
+        } finally {
+          setLoadingDrugs(false);
+        }
+      };
+
+      if (show) {
+        loadDrugs();
+      }
+    }, [show, drugStore]);
+
     return (
       <AnimatePresence>
         {show && (
@@ -111,31 +148,43 @@ const AddScheduleModal = observer(
                   />
                   {showSuggestions && form.name_drug && (
                     <ul className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded shadow z-10 max-h-48 overflow-y-auto">
-                      {drugStore.drugs
-                        .filter((drug) =>
-                          drug.name
-                            .toLowerCase()
-                            .includes(form.name_drug.toLowerCase()),
-                        )
-                        .map((drug) => (
-                          <li
-                            key={drug.id}
-                            className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                            onClick={() => {
-                              setForm({
-                                ...form,
-                                name_drug: drug.name,
-                                dosage: drug.dosage,
-                                frequency: drug.frequency,
-                                interval: drug.interval,
-                                description: drug.description,
-                              });
-                              setShowSuggestions(false);
-                            }}
-                          >
-                            {drug.name}
-                          </li>
-                        ))}
+                      {loadingDrugs ? (
+                        <li className="px-3 py-2 text-gray-500 flex items-center justify-center">
+                          <Loader2 className="animate-spin mr-2" size={16} />
+                          Загрузка...
+                        </li>
+                      ) : drugsError ? (
+                        <li className="px-3 py-2 text-red-500 flex items-center">
+                          <AlertCircle className="mr-2" size={16} />
+                          {drugsError}
+                        </li>
+                      ) : (
+                        (Array.isArray(drugStore.drugs) ? drugStore.drugs : [])
+                          .filter((drug) =>
+                            drug?.name
+                              ?.toLowerCase()
+                              .includes(form.name_drug.toLowerCase()),
+                          )
+                          .map((drug) => (
+                            <li
+                              key={drug.id}
+                              className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                              onClick={() => {
+                                setForm({
+                                  ...form,
+                                  name_drug: drug.name,
+                                  dosage: drug.dosage,
+                                  frequency: drug.frequency,
+                                  interval: drug.interval,
+                                  description: drug.description,
+                                });
+                                setShowSuggestions(false);
+                              }}
+                            >
+                              {drug.name}
+                            </li>
+                          ))
+                      )}
                     </ul>
                   )}
                 </div>
@@ -206,9 +255,7 @@ const AddScheduleModal = observer(
                   <input
                     type="datetime-local"
                     className="input"
-                    value={fromUtcToLocalDate(form.start_datetime)
-                      .toISOString()
-                      .slice(0, 16)}
+                    value={form.start_datetime.slice(0, 16)}
                     onChange={handleStartDateChange}
                   />
                 </div>
@@ -245,9 +292,7 @@ const AddScheduleModal = observer(
                   <input
                     type="datetime-local"
                     className="input"
-                    value={fromUtcToLocalDate(form.end_datetime)
-                      .toISOString()
-                      .slice(0, 16)}
+                    value={form.end_datetime.slice(0, 16)}
                     onChange={handleEndDateChange}
                   />
                 </div>

@@ -4,11 +4,12 @@ import { Link } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faMapLocationDot,
+  faCalendar,
   faUserCircle,
   faScrewdriverWrench,
 } from "@fortawesome/free-solid-svg-icons";
 import { useStores } from "../../stores/useStores";
+import "./Header.css";
 
 export const Header = observer(() => {
   const { authStore } = useStores();
@@ -24,154 +25,107 @@ export const Header = observer(() => {
 
     if (menuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      document.body.style.overflow = "hidden"; // блокируем скролл при открытом меню
     } else {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.body.style.overflow = "";
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.body.style.overflow = "";
     };
   }, [menuOpen]);
 
   if (!authStore.isAuthenticated) return null;
 
   return (
-    <header className="bg-white shadow-md py-4 px-4 sm:px-10 min-h-[70px] relative z-50">
-      <div className="flex items-center justify-between max-w-screen-xl mx-auto">
-        {/* Логотип */}
-        <Link to="/" className="flex items-center">
-          <img src="/logo.png" alt="logo" className="w-10 sm:w-12 md:w-14" />
+    <header className="flex shadow-md py-4 px-4 sm:px-10 bg-white min-h-[70px] tracking-wide relative z-50">
+      <div className="flex flex-wrap items-center justify-between gap-5 w-full">
+        <Link to="/" className="max-sm:hidden">
+          <img src="/logo.png" alt="logo" className="w-15" />
+        </Link>
+        <Link to="/" className="hidden max-sm:block">
+          <img src="/logo.png" alt="logo" className="w-15" />
         </Link>
 
-        {/* Меню для десктопа */}
-        <nav className="hidden lg:flex space-x-10 items-center">
-          <Link
-            to="/map"
-            className="flex items-center gap-2 text-blue-700 font-medium hover:text-blue-900"
-          >
-            <FontAwesomeIcon icon={faMapLocationDot} />
-            Карта
-          </Link>
-
-          <Link
-            to="/profile"
-            className="flex items-center gap-2 text-gray-900 font-medium hover:text-blue-700"
-          >
-            <FontAwesomeIcon icon={faUserCircle} />
-            {authStore.user?.username}
-          </Link>
-
-          {authStore.user?.is_superuser && (
-            <Link
-              to="/admin"
-              className="flex items-center gap-2 text-gray-900 font-medium hover:text-blue-700"
-            >
-              <FontAwesomeIcon icon={faScrewdriverWrench} />
-              Админ панель
-            </Link>
-          )}
-
-          <button
-            onClick={() => authStore.logout()}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 transition-transform hover:scale-105"
-          >
-            <LogOut size={18} />
-            Выйти
-          </button>
-        </nav>
-
-        {/* Кнопка меню для мобилок */}
-        <button
-          className="lg:hidden flex items-center justify-center p-2 rounded-md hover:bg-gray-200 transition"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Открыть меню"
+        <div
+          ref={menuRef}
+          id="collapseMenu"
+          className={`${
+            menuOpen ? "block" : "hidden"
+          } max-lg:fixed  max-lg:bg-white max-lg:w-1/2 max-lg:min-w-[300px] max-lg:top-0 max-lg:left-0 max-lg:p-6 max-lg:h-full max-lg:shadow-md max-lg:overflow-auto z-50 lg:block`}
         >
-          <svg
-            className="w-7 h-7"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-
-        {/* Мобильное меню (оверлей + панель) */}
-        {menuOpen && (
-          <>
-            {/* Полупрозрачный фон */}
-            <div
-              className="fixed inset-0 bg-black opacity-50 z-40"
-              onClick={() => setMenuOpen(false)}
-            />
-
-            {/* Само меню */}
-            <div
-              ref={menuRef}
-              className="fixed top-0 left-0 bottom-0 w-64 bg-white shadow-lg p-6 z-50 flex flex-col"
-            >
-              {/* Кнопка закрытия */}
-              <button
-                className="self-end mb-6 text-gray-700 hover:text-gray-900 text-3xl font-bold"
+          <ul className="lg:flex mt-30 *:gap-x-5 max-lg:space-y-3">
+            <li className="mb-6 hidden max-lg:block">
+              <Link to="/" onClick={() => setMenuOpen(false)}>
+                <img src="/logo.png" alt="logo" className="w-25" />
+              </Link>
+            </li>
+            <li className="max-lg:border-b max-lg:border-gray-300 max-lg:py-3 px-3">
+              <Link
+                to="/calendar"
+                className="hover:text-blue-700 text-blue-700 font-medium text-[15px] block"
                 onClick={() => setMenuOpen(false)}
-                aria-label="Закрыть меню"
               >
-                ×
+                <FontAwesomeIcon icon={faCalendar} className="mr-3" />
+                Календарь
+              </Link>
+            </li>
+            <li className="max-lg:border-b max-lg:border-gray-300 max-lg:py-3 px-3">
+              <Link
+                to="/profile"
+                className="hover:text-blue-700 text-slate-900 block font-medium text-[15px]"
+                onClick={() => setMenuOpen(false)}
+              >
+                <FontAwesomeIcon icon={faUserCircle} className="mr-3" />
+                {authStore.user ? authStore.user.username : ""}
+              </Link>
+            </li>
+            {authStore.user && authStore.user.is_superuser && (
+              <li className="max-lg:border-b max-lg:border-gray-300 max-lg:py-3 px-3">
+                <Link
+                  to="/admin"
+                  className="hover:text-blue-700 text-slate-900 block font-medium text-[15px]"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <FontAwesomeIcon
+                    icon={faScrewdriverWrench}
+                    className="mr-3"
+                  />
+                  Админ панель
+                </Link>
+              </li>
+            )}
+            {authStore.isAuthenticated && authStore.user && (
+              <button
+                onClick={() => authStore.logout()}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 transition transform hover:scale-105"
+              >
+                <LogOut size={18} />
+                Выйти
               </button>
+            )}
+          </ul>
+        </div>
 
-              <nav className="flex flex-col gap-6">
-                <Link
-                  to="/map"
-                  className="flex items-center gap-3 text-blue-700 font-medium hover:text-blue-900"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <FontAwesomeIcon icon={faMapLocationDot} />
-                  Карта
-                </Link>
-
-                <Link
-                  to="/profile"
-                  className="flex items-center gap-3 text-gray-900 font-medium hover:text-blue-700"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <FontAwesomeIcon icon={faUserCircle} />
-                  {authStore.user?.username}
-                </Link>
-
-                {authStore.user?.is_superuser && (
-                  <Link
-                    to="/admin"
-                    className="flex items-center gap-3 text-gray-900 font-medium hover:text-blue-700"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <FontAwesomeIcon icon={faScrewdriverWrench} />
-                    Админ панель
-                  </Link>
-                )}
-
-                <button
-                  onClick={() => {
-                    authStore.logout();
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 transition-transform hover:scale-105"
-                >
-                  <LogOut size={18} />
-                  Выйти
-                </button>
-              </nav>
-            </div>
-          </>
-        )}
+        <div className="flex max-lg:ml-auto items-center space-x-4">
+          <button
+            id="toggleOpen"
+            className="lg:hidden cursor-pointer"
+            onClick={() => setMenuOpen(true)}
+          >
+            <svg
+              className="w-7 h-7"
+              fill="#000"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
   );
